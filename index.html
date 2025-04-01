@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片修改工具</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>图片修改工具</h1>
+        <div class="upload-section">
+            <label for="image-upload" class="upload-label">
+                <span>选择图片</span>
+                <input type="file" id="image-upload" accept="image/*">
+            </label>
+            <p class="hint">支持JPG、PNG、GIF等常见图片格式</p>
+        </div>
+
+        <div class="preview-section hidden" id="preview-container">
+            <h2>图片预览</h2>
+            <div class="preview-wrapper">
+                <img id="preview-image" src="" alt="预览图">
+            </div>
+            <div class="image-info">
+                <p>原始尺寸: <span id="original-size">0 x 0</span></p>
+                <p>文件大小: <span id="file-size">0 KB</span></p>
+            </div>
+        </div>
+
+        <div class="edit-section hidden" id="edit-container">
+            <h2>修改选项</h2>
+            <div class="options">
+                <div class="size-option">
+                    <input type="radio" id="size-640" name="size-option" value="640" checked>
+                    <label for="size-640">640 x 640 像素</label>
+                </div>
+                <div class="size-option">
+                    <input type="radio" id="size-240" name="size-option" value="240">
+                    <label for="size-240">240 x 240 像素</label>
+                </div>
+                <div class="size-option">
+                    <input type="radio" id="size-50" name="size-option" value="50">
+                    <label for="size-50">50 x 50 像素</label>
+                </div>
+                <div class="size-option">
+                    <input type="radio" id="size-750-400" name="size-option" value="750-400">
+                    <label for="size-750-400">750 x 400 像素</label>
+                </div>
+                <div class="quality-option">
+                    <label for="quality-slider">图片质量:</label>
+                    <input type="range" id="quality-slider" min="10" max="100" value="95">
+                    <span id="quality-value">95%</span>
+                </div>
+            </div>
+            <button id="process-btn" class="btn primary">处理图片</button>
+        </div>
+
+        <div class="result-section hidden" id="result-container">
+            <h2>处理结果</h2>
+            <div class="result-wrapper">
+                <img id="result-image" src="" alt="处理后图片">
+            </div>
+            <div class="result-info">
+                <p>新尺寸: <span id="new-size">0 x 0</span></p>
+                <p>新文件大小: <span id="new-file-size">0 KB</span></p>
+                <p>图片格式: <span id="format-info">JPEG</span></p>
+                <div class="file-warning hidden" id="size-warning">
+                    <p>⚠️ 图片质量已自动调整以获得最佳效果</p>
+                </div>
+                <div class="quality-info">
+                    <p>注意: 小尺寸图片(50x50)已使用高质量设置处理，以保证最佳清晰度</p>
+                </div>
+                <div class="large-image-info" style="display: none;">
+                    <p>注意: 大尺寸图片(640x640)已使用优化压缩算法处理，以控制文件大小</p>
+                </div>
+                <div class="rectangle-image-info" style="display: none;">
+                    <p>注意: 矩形图片(750x400)将保持宽高比，不会被裁剪为正方形</p>
+                </div>
+            </div>
+            <a id="download-btn" class="btn primary" download="image-resized.jpg">下载图片</a>
+            <button id="reset-btn" class="btn secondary">重新开始</button>
+        </div>
+    </div>
+    <footer>
+        <p>© 2023 图片修改工具 - 简单易用的在线图片处理</p>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html> 
