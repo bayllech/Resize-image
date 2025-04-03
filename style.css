@@ -215,4 +215,58 @@ footer {
 
 .rectangle-image-info p {
     margin: 0;
+}
+
+.remove-bg-option {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.remove-bg-option input {
+    margin-right: 8px;
+}
+
+.remove-bg-settings {
+    margin-left: 20px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #3498db;
+}
+
+.threshold-option {
+    display: flex;
+    align-items: center;
+    margin: 5px 0;
+}
+
+.threshold-option label {
+    margin-right: 10px;
+}
+
+.threshold-option input {
+    margin-right: 10px;
+}
+
+.threshold-hint {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+.bg-removed-info {
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #e1f5fe;
+    border-left: 4px solid #03a9f4;
+    color: #01579b;
+    font-size: 0.9rem;
+    display: none;
+}
+
+.bg-removed-info p {
+    margin: 0;
 } 

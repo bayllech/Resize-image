@@ -52,6 +52,18 @@
                     <input type="range" id="quality-slider" min="10" max="100" value="95">
                     <span id="quality-value">95%</span>
                 </div>
+                <div class="remove-bg-option">
+                    <input type="checkbox" id="remove-bg" name="remove-bg">
+                    <label for="remove-bg">抠图（去除背景）</label>
+                </div>
+                <div class="remove-bg-settings hidden" id="remove-bg-settings">
+                    <div class="threshold-option">
+                        <label for="threshold-slider">抠图灵敏度:</label>
+                        <input type="range" id="threshold-slider" min="0" max="100" value="90">
+                        <span id="threshold-value">90%</span>
+                    </div>
+                    <p class="threshold-hint">提示：灵敏度越高，越多的像素会被设为透明；灵敏度过低可能导致主体图像失色</p>
+                </div>
             </div>
             <button id="process-btn" class="btn primary">处理图片</button>
         </div>

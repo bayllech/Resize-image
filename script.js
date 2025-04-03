@@ -16,6 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const processBtn = document.getElementById('process-btn');
     const qualitySlider = document.getElementById('quality-slider');
     const qualityValue = document.getElementById('quality-value');
+    
+    // 抠图功能相关DOM元素
+    const removeBgCheckbox = document.getElementById('remove-bg');
+    const removeBgSettings = document.getElementById('remove-bg-settings');
+    const thresholdSlider = document.getElementById('threshold-slider');
+    const thresholdValue = document.getElementById('threshold-value');
 
     // 全局变量
     let originalFile = null;
@@ -25,6 +31,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // 更新质量百分比显示
     qualitySlider.addEventListener('input', () => {
         qualityValue.textContent = qualitySlider.value + '%';
+    });
+    
+    // 更新抠图灵敏度百分比显示
+    thresholdSlider.addEventListener('input', () => {
+        thresholdValue.textContent = thresholdSlider.value + '%';
+    });
+    
+    // 确保初始显示值正确
+    thresholdValue.textContent = thresholdSlider.value + '%';
+    
+    // 切换抠图设置的显示/隐藏
+    removeBgCheckbox.addEventListener('change', () => {
+        if (removeBgCheckbox.checked) {
+            removeBgSettings.classList.remove('hidden');
+        } else {
+            removeBgSettings.classList.add('hidden');
+        }
     });
 
     // 处理图片上传
@@ -69,12 +92,23 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const selectedSize = document.querySelector('input[name="size-option"]:checked').value;
         const quality = parseInt(qualitySlider.value) / 100;
+        const removeBg = removeBgCheckbox.checked;
+        const threshold = parseInt(thresholdSlider.value) / 100;
         
-        // 检查是否是矩形尺寸
-        if (selectedSize === '750-400') {
-            resizeImageToRectangle(originalFile, 750, 400, quality);
+        // 检查是否需要去除背景
+        if (removeBg) {
+            if (selectedSize === '750-400') {
+                resizeAndRemoveBgRectangle(originalFile, 750, 400, quality, threshold);
+            } else {
+                resizeAndRemoveBg(originalFile, parseInt(selectedSize), quality, threshold);
+            }
         } else {
-            resizeImage(originalFile, parseInt(selectedSize), quality);
+            // 原有的图片处理逻辑
+            if (selectedSize === '750-400') {
+                resizeImageToRectangle(originalFile, 750, 400, quality);
+            } else {
+                resizeImage(originalFile, parseInt(selectedSize), quality);
+            }
         }
     });
 
@@ -451,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateDownloadButton(blob, size) {
         const imageUrl = URL.createObjectURL(blob);
         downloadBtn.href = imageUrl;
-        downloadBtn.download = `image-${size}x${size}.jpg`;
+        downloadBtn.download = `image-${size}x${size}-transparent.png`;
     }
     
     // 格式化文件大小
@@ -653,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 更新下载按钮
         downloadBtn.href = imageUrl;
-        downloadBtn.download = `image-${width}x${height}.jpg`;
+        downloadBtn.download = `image-${width}x${height}-transparent.png`;
         
         // 显示结果和警告
         resultContainer.classList.remove('hidden');
@@ -681,5 +715,326 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rectangleImageInfo) {
             rectangleImageInfo.style.display = 'block';
         }
+    }
+
+    // 抠图并调整大小功能
+    function resizeAndRemoveBg(file, targetSize, initialQuality, threshold) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                // 创建canvas进行图片处理
+                const canvas = document.createElement('canvas');
+                canvas.width = targetSize;
+                canvas.height = targetSize;
+                
+                // 绘制图片
+                const ctx = canvas.getContext('2d');
+                
+                // 清空画布，设置透明背景
+                ctx.clearRect(0, 0, targetSize, targetSize);
+                
+                // 计算裁剪方式（正方形裁剪）
+                let sourceX = 0;
+                let sourceY = 0;
+                let sourceWidth = img.width;
+                let sourceHeight = img.height;
+                
+                if (img.width > img.height) {
+                    sourceX = (img.width - img.height) / 2;
+                    sourceWidth = img.height;
+                } else if (img.height > img.width) {
+                    sourceY = (img.height - img.width) / 2;
+                    sourceHeight = img.width;
+                }
+                
+                // 首先绘制图片到临时canvas以便进行抠图处理
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = sourceWidth;
+                tempCanvas.height = sourceHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(
+                    img,
+                    sourceX, sourceY, sourceWidth, sourceHeight,
+                    0, 0, sourceWidth, sourceHeight
+                );
+                
+                // 获取图片数据以进行处理
+                const imageData = tempCtx.getImageData(0, 0, sourceWidth, sourceHeight);
+                const data = imageData.data;
+                
+                // 使用颜色边缘检测算法去除背景
+                removeBackground(imageData, threshold);
+                
+                // 将处理后的图像数据放回临时画布
+                tempCtx.putImageData(imageData, 0, 0);
+                
+                // 绘制处理后的图像到最终canvas，并调整大小
+                ctx.drawImage(tempCanvas, 0, 0, targetSize, targetSize);
+                
+                // 使用PNG格式保存（保留透明度）
+                canvas.toBlob((blob) => {
+                    handleProcessedImageWithBgRemoved(blob, targetSize, initialQuality, false, 'image/png');
+                }, 'image/png', 1.0);  // 使用100%质量的PNG以保留透明度
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    // 去除背景函数（使用颜色边缘检测算法）
+    function removeBackground(imageData, threshold) {
+        const data = imageData.data;
+        const width = imageData.width;
+        const height = imageData.height;
+        
+        // 步骤1: 找到可能的背景颜色（使用边缘像素的平均颜色）
+        let edgePixels = [];
+        
+        // 收集图像边缘的所有像素
+        for (let x = 0; x < width; x++) {
+            edgePixels.push(getPixelColor(data, x, 0, width));
+            edgePixels.push(getPixelColor(data, x, height - 1, width));
+        }
+        
+        for (let y = 1; y < height - 1; y++) {
+            edgePixels.push(getPixelColor(data, 0, y, width));
+            edgePixels.push(getPixelColor(data, width - 1, y, width));
+        }
+        
+        // 计算边缘像素的平均颜色
+        const avgColor = calculateAverageColor(edgePixels);
+        
+        // 步骤2: 遍历所有像素，将与背景颜色相似的像素设为透明
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const i = (y * width + x) * 4;
+                const pixelColor = {r: data[i], g: data[i + 1], b: data[i + 2]};
+                
+                // 计算像素与背景色的相似度
+                const similarity = calculateColorSimilarity(pixelColor, avgColor);
+                
+                // 如果相似度超过阈值，则认为是背景，设置为透明
+                if (similarity > threshold) {
+                    data[i + 3] = 0; // 设置alpha通道为0（完全透明）
+                }
+            }
+        }
+        
+        return imageData;
+    }
+    
+    // 辅助函数：获取指定坐标的像素颜色
+    function getPixelColor(data, x, y, width) {
+        const i = (y * width + x) * 4;
+        return {
+            r: data[i],
+            g: data[i + 1],
+            b: data[i + 2]
+        };
+    }
+    
+    // 辅助函数：计算平均颜色
+    function calculateAverageColor(colors) {
+        let sumR = 0, sumG = 0, sumB = 0;
+        
+        for (let color of colors) {
+            sumR += color.r;
+            sumG += color.g;
+            sumB += color.b;
+        }
+        
+        return {
+            r: Math.round(sumR / colors.length),
+            g: Math.round(sumG / colors.length),
+            b: Math.round(sumB / colors.length)
+        };
+    }
+    
+    // 辅助函数：计算两个颜色的相似度（0-1之间，1为完全相同）
+    function calculateColorSimilarity(color1, color2) {
+        // 使用欧几里得距离计算颜色相似度
+        const distance = Math.sqrt(
+            Math.pow(color1.r - color2.r, 2) +
+            Math.pow(color1.g - color2.g, 2) +
+            Math.pow(color1.b - color2.b, 2)
+        );
+        
+        // 归一化到0-1范围，255*sqrt(3)是最大可能距离
+        return 1 - (distance / (255 * Math.sqrt(3)));
+    }
+    
+    // 处理矩形图片的抠图功能
+    function resizeAndRemoveBgRectangle(file, width, height, initialQuality, threshold) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                // 创建canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                
+                // 计算缩放比例保持宽高比
+                let scaleFactor = Math.min(width / img.width, height / img.height);
+                let scaledWidth = img.width * scaleFactor;
+                let scaledHeight = img.height * scaleFactor;
+                
+                // 居中放置图片
+                let x = (width - scaledWidth) / 2;
+                let y = (height - scaledHeight) / 2;
+                
+                // 清空画布，设置透明背景
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, width, height);
+                
+                // 首先绘制到临时canvas以进行抠图处理
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = img.width;
+                tempCanvas.height = img.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(img, 0, 0);
+                
+                // 获取图片数据以进行处理
+                const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
+                
+                // 使用颜色边缘检测算法去除背景
+                removeBackground(imageData, threshold);
+                
+                // 将处理后的图像数据放回临时画布
+                tempCtx.putImageData(imageData, 0, 0);
+                
+                // 绘制处理后的图像到最终canvas，并调整大小
+                ctx.drawImage(tempCanvas, 0, 0, img.width, img.height, x, y, scaledWidth, scaledHeight);
+                
+                // 使用PNG格式保存（保留透明度）
+                canvas.toBlob((blob) => {
+                    handleRectangleImageWithBgRemoved(blob, width, height, initialQuality, false, 'image/png');
+                }, 'image/png', 1.0);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    // 处理抠图后的方形图像结果
+    function handleProcessedImageWithBgRemoved(blob, targetSize, initialQuality, showQualityWarning, mimeType) {
+        const imageUrl = URL.createObjectURL(blob);
+        
+        // 更新UI
+        resultImage.src = imageUrl;
+        newSize.textContent = `${targetSize} x ${targetSize}`;
+        newFileSize.textContent = formatFileSize(blob.size);
+        
+        // 显示图片格式信息
+        const formatInfo = document.getElementById('format-info');
+        if (formatInfo) {
+            formatInfo.textContent = 'PNG (透明背景)';
+        }
+        
+        // 显示质量警告（如果需要）
+        if (showQualityWarning) {
+            sizeWarning.classList.remove('hidden');
+        } else {
+            sizeWarning.classList.add('hidden');
+        }
+        
+        // 显示抠图信息
+        displayBgRemovedInfo(true);
+        
+        // 隐藏其他特殊提示
+        const qualityInfo = document.querySelector('.quality-info');
+        const largeImageInfo = document.querySelector('.large-image-info');
+        
+        if (qualityInfo) qualityInfo.style.display = 'none';
+        if (largeImageInfo) largeImageInfo.style.display = 'none';
+        
+        // 显示结果区域
+        resultContainer.classList.remove('hidden');
+        
+        // 更新下载按钮
+        updateDownloadButton(blob, targetSize);
+    }
+    
+    // 处理抠图后的矩形图像结果
+    function handleRectangleImageWithBgRemoved(blob, width, height, initialQuality, showQualityWarning, mimeType) {
+        const imageUrl = URL.createObjectURL(blob);
+        
+        // 更新UI
+        resultImage.src = imageUrl;
+        newSize.textContent = `${width} x ${height}`;
+        newFileSize.textContent = formatFileSize(blob.size);
+        
+        // 显示图片格式信息
+        const formatInfo = document.getElementById('format-info');
+        if (formatInfo) {
+            formatInfo.textContent = 'PNG (透明背景)';
+        }
+        
+        // 显示质量警告（如果需要）
+        if (showQualityWarning) {
+            sizeWarning.classList.remove('hidden');
+        } else {
+            sizeWarning.classList.add('hidden');
+        }
+        
+        // 显示抠图信息
+        displayBgRemovedInfo(false);
+        
+        // 隐藏其他特殊提示
+        const qualityInfo = document.querySelector('.quality-info');
+        const largeImageInfo = document.querySelector('.large-image-info');
+        
+        if (qualityInfo) qualityInfo.style.display = 'none';
+        if (largeImageInfo) largeImageInfo.style.display = 'none';
+        
+        // 显示矩形图片信息
+        const rectangleImageInfo = document.querySelector('.rectangle-image-info');
+        if (rectangleImageInfo) {
+            rectangleImageInfo.style.display = 'block';
+        }
+        
+        // 显示结果区域
+        resultContainer.classList.remove('hidden');
+        
+        // 更新下载按钮
+        updateDownloadButtonRectangle(blob, width, height);
+    }
+    
+    // 显示抠图信息
+    function displayBgRemovedInfo(isSquare) {
+        // 检查是否已存在信息元素
+        let bgRemovedInfo = document.querySelector('.bg-removed-info');
+        
+        // 如果不存在，创建一个新的
+        if (!bgRemovedInfo) {
+            bgRemovedInfo = document.createElement('div');
+            bgRemovedInfo.className = 'bg-removed-info';
+            
+            const infoText = document.createElement('p');
+            infoText.textContent = '注意: 图片背景已被移除，保存为透明PNG格式';
+            
+            bgRemovedInfo.appendChild(infoText);
+            document.querySelector('.result-info').appendChild(bgRemovedInfo);
+        }
+        
+        // 显示信息
+        bgRemovedInfo.style.display = 'block';
+    }
+    
+    // 更新正方形图片的下载按钮
+    function updateDownloadButton(blob, size) {
+        // 更新下载链接
+        const url = URL.createObjectURL(blob);
+        downloadBtn.href = url;
+        downloadBtn.download = `image-${size}x${size}-transparent.png`;
+    }
+    
+    // 更新矩形图片的下载按钮
+    function updateDownloadButtonRectangle(blob, width, height) {
+        // 更新下载链接
+        const url = URL.createObjectURL(blob);
+        downloadBtn.href = url;
+        downloadBtn.download = `image-${width}x${height}-transparent.png`;
     }
 }); 
