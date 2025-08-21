@@ -22,11 +22,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeBgSettings = document.getElementById('remove-bg-settings');
     const thresholdSlider = document.getElementById('threshold-slider');
     const thresholdValue = document.getElementById('threshold-value');
+    
+    // 批量处理相关DOM元素
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    const singleUpload = document.getElementById('single-upload');
+    const batchUpload = document.getElementById('batch-upload');
+    const batchImageUpload = document.getElementById('batch-image-upload');
+    const batchPreviewContainer = document.getElementById('batch-preview-container');
+    const batchPreviewList = document.getElementById('batch-preview-list');
+    const batchCount = document.getElementById('batch-count');
+    const batchResultContainer = document.getElementById('batch-result-container');
+    const batchProgressFill = document.getElementById('batch-progress-fill');
+    const batchProgressText = document.getElementById('batch-progress-text');
+    const batchImagesGrid = document.getElementById('batch-images-grid');
+    const batchDownloadBtn = document.getElementById('batch-download-btn');
+    const batchResetBtn = document.getElementById('batch-reset-btn');
 
     // 全局变量
     let originalFile = null;
     let originalImageWidth = 0;
     let originalImageHeight = 0;
+    
+    // 批量处理全局变量
+    let currentMode = 'single'; // 'single' 或 'batch'
+    let batchFiles = [];
+    let batchResults = [];
+    let isProcessingBatch = false;
 
     // 更新质量百分比显示
     qualitySlider.addEventListener('input', () => {
@@ -49,6 +70,71 @@ document.addEventListener('DOMContentLoaded', () => {
             removeBgSettings.classList.add('hidden');
         }
     });
+    
+    // 模式切换功能
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            switchMode(mode);
+        });
+    });
+    
+    // 切换处理模式
+    function switchMode(mode) {
+        currentMode = mode;
+        
+        // 更新按钮状态
+        modeBtns.forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // 切换上传界面
+        if (mode === 'single') {
+            singleUpload.classList.remove('hidden');
+            batchUpload.classList.add('hidden');
+            batchPreviewContainer.classList.add('hidden');
+            batchResultContainer.classList.add('hidden');
+            resetSingleMode();
+        } else {
+            singleUpload.classList.add('hidden');
+            batchUpload.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            editContainer.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+            resetBatchMode();
+        }
+    }
+    
+    // 重置单张模式
+    function resetSingleMode() {
+        imageUpload.value = '';
+        previewContainer.classList.add('hidden');
+        editContainer.classList.add('hidden');
+        resultContainer.classList.add('hidden');
+        sizeWarning.classList.add('hidden');
+        previewImage.src = '';
+        resultImage.src = '';
+        originalFile = null;
+        originalImageWidth = 0;
+        originalImageHeight = 0;
+    }
+    
+    // 重置批量模式
+    function resetBatchMode() {
+        batchImageUpload.value = '';
+        batchPreviewContainer.classList.add('hidden');
+        batchResultContainer.classList.add('hidden');
+        batchFiles = [];
+        batchResults = [];
+        batchPreviewList.innerHTML = '';
+        batchImagesGrid.innerHTML = '';
+        batchProgressFill.style.width = '0%';
+        batchProgressText.textContent = '0/0';
+    }
 
     // 处理图片上传
     imageUpload.addEventListener('change', (e) => {
@@ -85,30 +171,103 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         reader.readAsDataURL(file);
     });
+    
+    // 批量图片上传处理
+    batchImageUpload.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+        
+        // 验证所有文件都是图片
+        const invalidFiles = files.filter(file => !file.type.match('image.*'));
+        if (invalidFiles.length > 0) {
+            alert('只能上传图片文件！');
+            return;
+        }
+        
+        batchFiles = files;
+        displayBatchPreview();
+    });
+    
+    // 显示批量预览
+    function displayBatchPreview() {
+        batchPreviewList.innerHTML = '';
+        batchCount.textContent = batchFiles.length;
+        
+        batchFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const previewItem = createBatchPreviewItem(file, e.target.result, index);
+                batchPreviewList.appendChild(previewItem);
+                
+                // 当所有图片都加载完成后显示预览区域
+                if (batchPreviewList.children.length === batchFiles.length) {
+                    batchPreviewContainer.classList.remove('hidden');
+                    editContainer.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // 创建批量预览项
+    function createBatchPreviewItem(file, imageSrc, index) {
+        const div = document.createElement('div');
+        div.className = 'batch-preview-item';
+        
+        const img = document.createElement('img');
+        img.src = imageSrc;
+        img.alt = `预览图 ${index + 1}`;
+        
+        const fileName = document.createElement('div');
+        fileName.className = 'file-name';
+        fileName.textContent = file.name;
+        
+        const fileSize = document.createElement('div');
+        fileSize.className = 'file-size';
+        fileSize.textContent = formatFileSize(file.size);
+        
+        div.appendChild(img);
+        div.appendChild(fileName);
+        div.appendChild(fileSize);
+        
+        return div;
+    }
 
     // 处理图片按钮点击事件
     processBtn.addEventListener('click', () => {
-        if (!originalFile) return;
-        
-        const selectedSize = document.querySelector('input[name="size-option"]:checked').value;
-        const quality = parseInt(qualitySlider.value) / 100;
-        const removeBg = removeBgCheckbox.checked;
-        const threshold = parseInt(thresholdSlider.value) / 100;
-        
-        // 检查是否需要去除背景
-        if (removeBg) {
-            if (selectedSize === '750-400') {
-                resizeAndRemoveBgRectangle(originalFile, 750, 400, quality, threshold);
+        if (currentMode === 'single') {
+            if (!originalFile) return;
+            
+            const selectedSize = document.querySelector('input[name="size-option"]:checked').value;
+            const quality = parseInt(qualitySlider.value) / 100;
+            const removeBg = removeBgCheckbox.checked;
+            const threshold = parseInt(thresholdSlider.value) / 100;
+            
+            // 检查是否需要去除背景
+            if (removeBg) {
+                if (selectedSize === '750-400') {
+                    resizeAndRemoveBgRectangle(originalFile, 750, 400, quality, threshold);
+                } else {
+                    resizeAndRemoveBg(originalFile, parseInt(selectedSize), quality, threshold);
+                }
             } else {
-                resizeAndRemoveBg(originalFile, parseInt(selectedSize), quality, threshold);
+                // 原有的图片处理逻辑
+                if (selectedSize === '750-400') {
+                    resizeImageToRectangle(originalFile, 750, 400, quality);
+                } else {
+                    resizeImage(originalFile, parseInt(selectedSize), quality);
+                }
             }
         } else {
-            // 原有的图片处理逻辑
-            if (selectedSize === '750-400') {
-                resizeImageToRectangle(originalFile, 750, 400, quality);
-            } else {
-                resizeImage(originalFile, parseInt(selectedSize), quality);
-            }
+            // 批量处理模式
+            if (batchFiles.length === 0) return;
+            
+            const selectedSize = document.querySelector('input[name="size-option"]:checked').value;
+            const quality = parseInt(qualitySlider.value) / 100;
+            const removeBg = removeBgCheckbox.checked;
+            const threshold = parseInt(thresholdSlider.value) / 100;
+            
+            processBatchImages(selectedSize, quality, removeBg, threshold);
         }
     });
 
@@ -148,6 +307,342 @@ document.addEventListener('DOMContentLoaded', () => {
         originalImageWidth = 0;
         originalImageHeight = 0;
     });
+    
+    // 批量重置按钮事件
+    batchResetBtn.addEventListener('click', () => {
+        resetBatchMode();
+        batchPreviewContainer.classList.add('hidden');
+        editContainer.classList.add('hidden');
+    });
+    
+    // 批量处理图片
+    async function processBatchImages(selectedSize, quality, removeBg, threshold) {
+        if (isProcessingBatch) return;
+        
+        isProcessingBatch = true;
+        batchResults = [];
+        
+        // 显示批量处理结果区域
+        batchResultContainer.classList.remove('hidden');
+        batchImagesGrid.innerHTML = '';
+        
+        // 设置进度条
+        updateBatchProgress(0, batchFiles.length);
+        
+        // 逐个处理图片
+        for (let i = 0; i < batchFiles.length; i++) {
+            const file = batchFiles[i];
+            
+            try {
+                const result = await processSingleImageInBatch(file, selectedSize, quality, removeBg, threshold, i);
+                batchResults.push(result);
+                
+                // 显示处理结果
+                displayBatchResultItem(result, i);
+                
+                // 更新进度
+                updateBatchProgress(i + 1, batchFiles.length);
+                
+            } catch (error) {
+                console.error(`处理图片 ${file.name} 时出错:`, error);
+                
+                // 显示错误结果
+                const errorResult = {
+                    file: file,
+                    success: false,
+                    error: error.message
+                };
+                batchResults.push(errorResult);
+                displayBatchResultItem(errorResult, i);
+                
+                updateBatchProgress(i + 1, batchFiles.length);
+            }
+        }
+        
+        isProcessingBatch = false;
+        
+        // 处理完成后显示下载按钮
+        if (batchResults.length > 0) {
+            batchDownloadBtn.style.display = 'inline-block';
+        }
+    }
+    
+    // 在批量处理中处理单个图片
+    function processSingleImageInBatch(file, selectedSize, quality, removeBg, threshold, index) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        let processFunction;
+                        
+                        if (removeBg) {
+                            if (selectedSize === '750-400') {
+                                processFunction = resizeAndRemoveBgRectangleForBatch;
+                            } else {
+                                processFunction = resizeAndRemoveBgForBatch;
+                            }
+                        } else {
+                            if (selectedSize === '750-400') {
+                                processFunction = resizeImageToRectangleForBatch;
+                            } else {
+                                processFunction = resizeImageForBatch;
+                            }
+                        }
+                        
+                        processFunction(file, img, selectedSize, quality, threshold)
+                            .then(result => resolve(result))
+                            .catch(error => reject(error));
+                            
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                img.onerror = () => reject(new Error('图片加载失败'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('文件读取失败'));
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // 批量处理专用的图片调整函数
+    function resizeImageForBatch(file, img, targetSize, quality) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, targetSize, targetSize);
+            
+            // 计算裁剪方式（正方形裁剪）
+            let sourceX = 0;
+            let sourceY = 0;
+            let sourceWidth = img.width;
+            let sourceHeight = img.height;
+            
+            if (img.width > img.height) {
+                sourceX = (img.width - img.height) / 2;
+                sourceWidth = img.height;
+            } else if (img.height > img.width) {
+                sourceY = (img.height - img.width) / 2;
+                sourceHeight = img.width;
+            }
+            
+            ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, targetSize, targetSize);
+            
+            // 简化处理，直接使用指定质量
+            canvas.toBlob((blob) => {
+                resolve({
+                    file: file,
+                    blob: blob,
+                    success: true,
+                    size: `${targetSize}x${targetSize}`,
+                    fileSize: blob.size,
+                    format: 'image/jpeg'
+                });
+            }, 'image/jpeg', quality);
+        });
+    }
+    
+    // 批量处理专用的矩形图片调整函数
+    function resizeImageToRectangleForBatch(file, img, width, height, quality) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            
+            // 计算宽高比
+            const targetRatio = width / height;
+            const sourceRatio = img.width / img.height;
+            
+            let sourceX = 0;
+            let sourceY = 0;
+            let usedSourceWidth = img.width;
+            let usedSourceHeight = img.height;
+            
+            if (sourceRatio > targetRatio) {
+                usedSourceWidth = img.height * targetRatio;
+                sourceX = (img.width - usedSourceWidth) / 2;
+            } else if (sourceRatio < targetRatio) {
+                usedSourceHeight = img.width / targetRatio;
+                sourceY = (img.height - usedSourceHeight) / 2;
+            }
+            
+            ctx.drawImage(img, sourceX, sourceY, usedSourceWidth, usedSourceHeight, 0, 0, width, height);
+            
+            canvas.toBlob((blob) => {
+                resolve({
+                    file: file,
+                    blob: blob,
+                    success: true,
+                    size: `${width}x${height}`,
+                    fileSize: blob.size,
+                    format: 'image/jpeg'
+                });
+            }, 'image/jpeg', quality);
+        });
+    }
+    
+    // 批量处理专用的抠图函数
+    function resizeAndRemoveBgForBatch(file, img, targetSize, quality, threshold) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, targetSize, targetSize);
+            
+            // 计算裁剪方式
+            let sourceX = 0;
+            let sourceY = 0;
+            let sourceWidth = img.width;
+            let sourceHeight = img.height;
+            
+            if (img.width > img.height) {
+                sourceX = (img.width - img.height) / 2;
+                sourceWidth = img.height;
+            } else if (img.height > img.width) {
+                sourceY = (img.height - img.width) / 2;
+                sourceHeight = img.width;
+            }
+            
+            // 创建临时canvas进行抠图
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = sourceWidth;
+            tempCanvas.height = sourceHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+            
+            const imageData = tempCtx.getImageData(0, 0, sourceWidth, sourceHeight);
+            removeBackground(imageData, threshold);
+            tempCtx.putImageData(imageData, 0, 0);
+            
+            ctx.drawImage(tempCanvas, 0, 0, targetSize, targetSize);
+            
+            canvas.toBlob((blob) => {
+                resolve({
+                    file: file,
+                    blob: blob,
+                    success: true,
+                    size: `${targetSize}x${targetSize}`,
+                    fileSize: blob.size,
+                    format: 'image/png',
+                    backgroundRemoved: true
+                });
+            }, 'image/png', 1.0);
+        });
+    }
+    
+    // 批量处理专用的矩形抠图函数
+    function resizeAndRemoveBgRectangleForBatch(file, img, width, height, quality, threshold) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, width, height);
+            
+            // 计算缩放比例
+            let scaleFactor = Math.min(width / img.width, height / img.height);
+            let scaledWidth = img.width * scaleFactor;
+            let scaledHeight = img.height * scaleFactor;
+            let x = (width - scaledWidth) / 2;
+            let y = (height - scaledHeight) / 2;
+            
+            // 创建临时canvas进行抠图
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(img, 0, 0);
+            
+            const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
+            removeBackground(imageData, threshold);
+            tempCtx.putImageData(imageData, 0, 0);
+            
+            ctx.drawImage(tempCanvas, 0, 0, img.width, img.height, x, y, scaledWidth, scaledHeight);
+            
+            canvas.toBlob((blob) => {
+                resolve({
+                    file: file,
+                    blob: blob,
+                    success: true,
+                    size: `${width}x${height}`,
+                    fileSize: blob.size,
+                    format: 'image/png',
+                    backgroundRemoved: true
+                });
+            }, 'image/png', 1.0);
+        });
+    }
+    
+    // 更新批量处理进度
+    function updateBatchProgress(current, total) {
+        const percentage = (current / total) * 100;
+        batchProgressFill.style.width = percentage + '%';
+        batchProgressText.textContent = `${current}/${total}`;
+    }
+    
+    // 显示批量处理结果项
+    function displayBatchResultItem(result, index) {
+        const div = document.createElement('div');
+        div.className = 'batch-result-item';
+        
+        if (result.success) {
+            const imageUrl = URL.createObjectURL(result.blob);
+            
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = `处理后图片 ${index + 1}`;
+            
+            const info = document.createElement('div');
+            info.className = 'result-info';
+            info.innerHTML = `
+                <div>${result.file.name}</div>
+                <div>尺寸: ${result.size}</div>
+                <div>大小: ${formatFileSize(result.fileSize)}</div>
+                <div>格式: ${result.format === 'image/png' ? 'PNG' : 'JPEG'}${result.backgroundRemoved ? ' (透明背景)' : ''}</div>
+            `;
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.className = 'download-single';
+            downloadLink.href = imageUrl;
+            downloadLink.textContent = '下载';
+            downloadLink.download = getBatchFileName(result.file, result.size, result.format, result.backgroundRemoved);
+            
+            div.appendChild(img);
+            div.appendChild(info);
+            div.appendChild(downloadLink);
+        } else {
+            div.innerHTML = `
+                <div style="color: #e74c3c; text-align: center; padding: 20px;">
+                    <div>❌ 处理失败</div>
+                    <div style="font-size: 0.8rem; margin-top: 10px;">${result.file.name}</div>
+                    <div style="font-size: 0.7rem; color: #666;">${result.error}</div>
+                </div>
+            `;
+        }
+        
+        batchImagesGrid.appendChild(div);
+    }
+    
+    // 获取批量处理的文件名
+    function getBatchFileName(originalFile, size, format, backgroundRemoved) {
+        const nameWithoutExt = originalFile.name.replace(/\.[^/.]+$/, '');
+        const extension = format === 'image/png' ? 'png' : 'jpg';
+        const bgSuffix = backgroundRemoved ? '-transparent' : '';
+        return `${nameWithoutExt}_${size}${bgSuffix}.${extension}`;
+    }
 
     // 调整图片尺寸函数
     function resizeImage(file, targetSize, initialQuality) {
@@ -1037,4 +1532,43 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadBtn.href = url;
         downloadBtn.download = `image-${width}x${height}-transparent.png`;
     }
+    
+    // 批量下载按钮事件
+    batchDownloadBtn.addEventListener('click', async () => {
+        if (batchResults.length === 0) return;
+        
+        const successfulResults = batchResults.filter(result => result.success);
+        if (successfulResults.length === 0) {
+            alert('没有成功处理的图片可供下载！');
+            return;
+        }
+        
+        // 创建ZIP文件
+        const zip = new JSZip();
+        
+        // 添加所有成功处理的图片到ZIP
+        successfulResults.forEach((result, index) => {
+            const fileName = getBatchFileName(result.file, result.size, result.format, result.backgroundRemoved);
+            zip.file(fileName, result.blob);
+        });
+        
+        try {
+            // 生成ZIP文件
+            const content = await zip.generateAsync({type: 'blob'});
+            
+            // 下载ZIP文件
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `processed_images_${new Date().getTime()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('创建ZIP文件时出错:', error);
+            alert('创建ZIP文件时出错，请尝试单独下载每张图片。');
+        }
+    });
 }); 
