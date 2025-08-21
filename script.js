@@ -608,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const info = document.createElement('div');
             info.className = 'result-info';
             info.innerHTML = `
-                <div>${result.file.name}</div>
+                <div title="${result.file.name}">${truncateFileName(result.file.name)}</div>
                 <div>尺寸: ${result.size}</div>
                 <div>大小: ${formatFileSize(result.fileSize)}</div>
                 <div>格式: ${result.format === 'image/png' ? 'PNG' : 'JPEG'}${result.backgroundRemoved ? ' (透明背景)' : ''}</div>
@@ -627,13 +627,22 @@ document.addEventListener('DOMContentLoaded', () => {
             div.innerHTML = `
                 <div style="color: #e74c3c; text-align: center; padding: 20px;">
                     <div>❌ 处理失败</div>
-                    <div style="font-size: 0.8rem; margin-top: 10px;">${result.file.name}</div>
+                    <div style="font-size: 0.8rem; margin-top: 10px;" title="${result.file.name}">${truncateFileName(result.file.name)}</div>
                     <div style="font-size: 0.7rem; color: #666;">${result.error}</div>
                 </div>
             `;
         }
         
         batchImagesGrid.appendChild(div);
+    }
+    
+    // 截断过长的文件名
+    function truncateFileName(fileName, maxLength = 20) {
+        if (fileName.length <= maxLength) return fileName;
+        const extension = fileName.split('.').pop();
+        const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+        const truncatedName = nameWithoutExt.substring(0, maxLength - extension.length - 3);
+        return `${truncatedName}...${extension}`;
     }
     
     // 获取批量处理的文件名
