@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(start:*)"
+      "Bash(start:*)",
+      "WebFetch(domain:www.zuohaotu.com)",
+      "WebSearch"
     ],
     "deny": []
   }

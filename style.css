@@ -430,4 +430,244 @@ footer {
 
 .batch-actions .btn {
     margin: 0 10px;
+}
+
+/* 图片分割相关样式 */
+.split-upload {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* 确保分割结果图片容器有足够的空间 */
+.split-result-item {
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px;
+}
+
+.split-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+.split-options {
+    margin-bottom: 20px;
+}
+
+.split-mode-option,
+.split-size-option,
+.split-quality-option,
+.split-format-option {
+    margin-bottom: 15px;
+}
+
+.split-mode-group,
+.split-format-group {
+    display: flex;
+    gap: 15px;
+    margin-top: 8px;
+}
+
+.split-mode-group label,
+.split-format-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.grid-split-options,
+.custom-split-options {
+    margin: 15px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #3498db;
+}
+
+.split-rows,
+.split-cols,
+.split-count,
+.split-layout {
+    margin-bottom: 10px;
+}
+
+.split-rows label,
+.split-cols label,
+.split-count label,
+.split-layout label {
+    display: inline-block;
+    width: 80px;
+    margin-right: 10px;
+}
+
+.split-rows input,
+.split-cols input,
+.split-count input {
+    width: 60px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.split-layout select {
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-width: 120px;
+}
+
+.split-size-option select {
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-width: 150px;
+}
+
+.split-quality-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.split-quality-option input {
+    flex: 1;
+    max-width: 200px;
+}
+
+/* 分割结果样式 */
+.split-result-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+.split-info {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #e8f5e8;
+    border-radius: 6px;
+    border-left: 4px solid #27ae60;
+}
+
+.split-info p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+
+.split-images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.split-result-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    background-color: #f9f9f9;
+    transition: transform 0.2s;
+    overflow: hidden;
+}
+
+.split-result-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.split-result-item img {
+    width: 100%;
+    height: 180px;
+    object-fit: contain;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    background-color: #f5f5f5;
+    border: 1px solid #e0e0e0;
+}
+
+.split-result-item .item-info {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.split-result-item .item-position {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 4px;
+}
+
+.split-result-item .item-size {
+    color: #7f8c8d;
+}
+
+.split-result-item .download-single {
+    display: inline-block;
+    padding: 4px 8px;
+    background-color: #3498db;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    transition: background-color 0.3s;
+}
+
+.split-result-item .download-single:hover {
+    background-color: #2980b9;
+}
+
+.split-actions {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.split-actions .btn {
+    margin: 0 10px;
+}
+
+/* 响应式设计 */
+@media (max-width: 600px) {
+    .split-mode-group,
+    .split-format-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .split-rows,
+    .split-cols,
+    .split-count,
+    .split-layout {
+        margin-bottom: 15px;
+    }
+    
+    .split-rows label,
+    .split-cols label,
+    .split-count label,
+    .split-layout label {
+        display: block;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    .split-images-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+    }
+    
+    .split-result-item {
+        padding: 10px;
+    }
+    
+    .split-result-item img {
+        height: 140px;
+        object-fit: contain;
+    }
 } 

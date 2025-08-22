@@ -37,6 +37,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const batchImagesGrid = document.getElementById('batch-images-grid');
     const batchDownloadBtn = document.getElementById('batch-download-btn');
     const batchResetBtn = document.getElementById('batch-reset-btn');
+    
+    // 图片分割相关DOM元素
+    const splitUpload = document.getElementById('split-upload');
+    const splitImageUpload = document.getElementById('split-image-upload');
+    const splitContainer = document.getElementById('split-container');
+    const splitResultContainer = document.getElementById('split-result-container');
+    const splitBtn = document.getElementById('split-btn');
+    const splitResetBtn = document.getElementById('split-reset-btn');
+    const splitDownloadAllBtn = document.getElementById('split-download-all-btn');
+    const splitImagesGrid = document.getElementById('split-images-grid');
+    const splitQualitySlider = document.getElementById('split-quality');
+    const splitQualityValue = document.getElementById('split-quality-value');
+    
+    // 分割选项相关DOM元素
+    const splitModeRadios = document.querySelectorAll('input[name="split-mode"]');
+    const gridSplitOptions = document.getElementById('grid-split-options');
+    const customSplitOptions = document.getElementById('custom-split-options');
+    const splitRowsInput = document.getElementById('split-rows');
+    const splitColsInput = document.getElementById('split-cols');
+    const splitCountInput = document.getElementById('split-count');
+    const splitLayoutSelect = document.getElementById('split-layout');
+    const splitSizeSelect = document.getElementById('split-size');
+    const splitFormatRadios = document.querySelectorAll('input[name="split-format"]');
+    
+    // 分割结果信息元素
+    const splitOriginalSize = document.getElementById('split-original-size');
+    const splitMethod = document.getElementById('split-method');
+    const splitTotalCount = document.getElementById('split-total-count');
 
     // 全局变量
     let originalFile = null;
@@ -44,10 +72,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let originalImageHeight = 0;
     
     // 批量处理全局变量
-    let currentMode = 'single'; // 'single' 或 'batch'
+    let currentMode = 'single'; // 'single'、'batch' 或 'split'
     let batchFiles = [];
     let batchResults = [];
     let isProcessingBatch = false;
+    
+    // 图片分割全局变量
+    let splitFile = null;
+    let splitImage = null;
+    let splitResults = [];
+    let isProcessingSplit = false;
 
     // 更新质量百分比显示
     qualitySlider.addEventListener('input', () => {
@@ -57,6 +91,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 更新抠图灵敏度百分比显示
     thresholdSlider.addEventListener('input', () => {
         thresholdValue.textContent = thresholdSlider.value + '%';
+    });
+    
+    // 更新分割质量百分比显示
+    splitQualitySlider.addEventListener('input', () => {
+        splitQualityValue.textContent = splitQualitySlider.value + '%';
     });
     
     // 确保初始显示值正确
@@ -96,16 +135,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mode === 'single') {
             singleUpload.classList.remove('hidden');
             batchUpload.classList.add('hidden');
+            splitUpload.classList.add('hidden');
             batchPreviewContainer.classList.add('hidden');
             batchResultContainer.classList.add('hidden');
+            splitContainer.classList.add('hidden');
+            splitResultContainer.classList.add('hidden');
             resetSingleMode();
-        } else {
+        } else if (mode === 'batch') {
             singleUpload.classList.add('hidden');
             batchUpload.classList.remove('hidden');
+            splitUpload.classList.add('hidden');
             previewContainer.classList.add('hidden');
             editContainer.classList.add('hidden');
             resultContainer.classList.add('hidden');
+            splitContainer.classList.add('hidden');
+            splitResultContainer.classList.add('hidden');
             resetBatchMode();
+        } else if (mode === 'split') {
+            singleUpload.classList.add('hidden');
+            batchUpload.classList.add('hidden');
+            splitUpload.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            editContainer.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+            batchPreviewContainer.classList.add('hidden');
+            batchResultContainer.classList.add('hidden');
+            resetSplitMode();
         }
     }
     
@@ -134,6 +189,17 @@ document.addEventListener('DOMContentLoaded', () => {
         batchImagesGrid.innerHTML = '';
         batchProgressFill.style.width = '0%';
         batchProgressText.textContent = '0/0';
+    }
+    
+    // 重置分割模式
+    function resetSplitMode() {
+        splitImageUpload.value = '';
+        splitContainer.classList.add('hidden');
+        splitResultContainer.classList.add('hidden');
+        splitFile = null;
+        splitImage = null;
+        splitResults = [];
+        splitImagesGrid.innerHTML = '';
     }
 
     // 处理图片上传
@@ -186,6 +252,53 @@ document.addEventListener('DOMContentLoaded', () => {
         
         batchFiles = files;
         displayBatchPreview();
+    });
+    
+    // 分割模式切换事件
+    splitModeRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (radio.value === 'grid') {
+                gridSplitOptions.classList.remove('hidden');
+                customSplitOptions.classList.add('hidden');
+            } else {
+                gridSplitOptions.classList.add('hidden');
+                customSplitOptions.classList.remove('hidden');
+            }
+        });
+    });
+    
+    // 分割图片上传处理
+    splitImageUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // 验证文件是否为图片
+        if (!file.type.match('image.*')) {
+            alert('请上传图片文件！');
+            return;
+        }
+        
+        splitFile = file;
+        
+        // 读取图片并显示分割设置
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                splitImage = img;
+                
+                // 更新原图尺寸信息
+                splitOriginalSize.textContent = `${img.width} x ${img.height}`;
+                
+                // 显示分割设置区域
+                splitContainer.classList.remove('hidden');
+                
+                // 根据图片尺寸智能建议分割参数
+                suggestSplitParameters(img.width, img.height);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
     });
     
     // 显示批量预览
@@ -1570,6 +1683,354 @@ document.addEventListener('DOMContentLoaded', () => {
             const a = document.createElement('a');
             a.href = url;
             a.download = `processed_images_${new Date().getTime()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('创建ZIP文件时出错:', error);
+            alert('创建ZIP文件时出错，请尝试单独下载每张图片。');
+        }
+    });
+    
+    // 智能建议分割参数
+    function suggestSplitParameters(width, height) {
+        const aspectRatio = width / height;
+        const totalPixels = width * height;
+        
+        // 根据图片大小和比例智能建议
+        if (totalPixels > 2000000) { // 大图片（超过2百万像素）
+            if (aspectRatio > 2) {
+                // 宽图，建议垂直分割
+                splitRowsInput.value = 2;
+                splitColsInput.value = 3;
+            } else if (aspectRatio < 0.5) {
+                // 高图，建议水平分割
+                splitRowsInput.value = 3;
+                splitColsInput.value = 2;
+            } else {
+                // 方形或接近方形，建议网格分割
+                splitRowsInput.value = 2;
+                splitColsInput.value = 2;
+            }
+        } else if (totalPixels > 500000) { // 中等图片
+            splitRowsInput.value = 2;
+            splitColsInput.value = 2;
+        } else { // 小图片
+            splitRowsInput.value = 2;
+            splitColsInput.value = 2;
+        }
+        
+        // 建议每块尺寸
+        const targetSize = Math.min(width, height) / Math.max(parseInt(splitRowsInput.value), parseInt(splitColsInput.value));
+        if (targetSize >= 640) {
+            splitSizeSelect.value = '640';
+        } else if (targetSize >= 320) {
+            splitSizeSelect.value = '320';
+        } else if (targetSize >= 240) {
+            splitSizeSelect.value = '240';
+        } else {
+            splitSizeSelect.value = '160';
+        }
+    }
+    
+    // 分割按钮点击事件
+    splitBtn.addEventListener('click', () => {
+        if (!splitFile || !splitImage) return;
+        
+        const splitMode = document.querySelector('input[name="split-mode"]:checked').value;
+        const quality = parseInt(splitQualitySlider.value) / 100;
+        const outputFormat = document.querySelector('input[name="split-format"]:checked').value;
+        const targetSize = splitSizeSelect.value;
+        
+        if (splitMode === 'grid') {
+            const rows = parseInt(splitRowsInput.value);
+            const cols = parseInt(splitColsInput.value);
+            splitImageGrid(splitFile, splitImage, rows, cols, quality, outputFormat, targetSize);
+        } else {
+            const count = parseInt(splitCountInput.value);
+            const layout = splitLayoutSelect.value;
+            splitImageCustom(splitFile, splitImage, count, layout, quality, outputFormat, targetSize);
+        }
+    });
+    
+    // 网格分割功能
+    async function splitImageGrid(file, img, rows, cols, quality, format, targetSize) {
+        if (isProcessingSplit) return;
+        
+        isProcessingSplit = true;
+        splitResults = [];
+        
+        // 显示分割结果区域
+        splitResultContainer.classList.remove('hidden');
+        splitImagesGrid.innerHTML = '';
+        
+        // 更新分割信息
+        splitMethod.textContent = `网格分割 (${rows}×${cols})`;
+        splitTotalCount.textContent = rows * cols;
+        
+        const pieceWidth = img.width / cols;
+        const pieceHeight = img.height / rows;
+        
+        // 创建临时canvas用于裁剪
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        let processedCount = 0;
+        
+        // 逐个处理每个分块
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const x = col * pieceWidth;
+                const y = row * pieceHeight;
+                
+                try {
+                    const result = await createSplitPiece(img, x, y, pieceWidth, pieceHeight, row, col, rows, cols, quality, format, targetSize);
+                    splitResults.push(result);
+                    displaySplitResultItem(result, processedCount);
+                    processedCount++;
+                } catch (error) {
+                    console.error(`处理分块 [${row},${col}] 时出错:`, error);
+                }
+            }
+        }
+        
+        isProcessingSplit = false;
+        
+        // 显示下载按钮
+        if (splitResults.length > 0) {
+            splitDownloadAllBtn.style.display = 'inline-block';
+        }
+    }
+    
+    // 创建单个分割块
+    function createSplitPiece(img, x, y, width, height, row, col, totalRows, totalCols, quality, format, targetSize) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 设置画布尺寸
+            let finalWidth = width;
+            let finalHeight = height;
+            
+            if (targetSize !== 'original') {
+                const size = parseInt(targetSize);
+                const scale = Math.min(size / width, size / height);
+                finalWidth = width * scale;
+                finalHeight = height * scale;
+            }
+            
+            canvas.width = finalWidth;
+            canvas.height = finalHeight;
+            
+            // 裁剪并绘制图片块
+            ctx.drawImage(
+                img,
+                x, y, width, height,  // 源矩形
+                0, 0, finalWidth, finalHeight  // 目标矩形
+            );
+            
+            // 转换为Blob
+            const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+            canvas.toBlob((blob) => {
+                resolve({
+                    blob: blob,
+                    width: finalWidth,
+                    height: finalHeight,
+                    row: row,
+                    col: col,
+                    position: `${row + 1}-${col + 1}`,
+                    format: mimeType,
+                    fileName: generateSplitFileName(splitFile.name, row, col, totalRows, totalCols, format)
+                });
+            }, mimeType, quality);
+        });
+    }
+    
+    // 自定义分割功能
+    async function splitImageCustom(file, img, count, layout, quality, format, targetSize) {
+        if (isProcessingSplit) return;
+        
+        isProcessingSplit = true;
+        splitResults = [];
+        
+        // 显示分割结果区域
+        splitResultContainer.classList.remove('hidden');
+        splitImagesGrid.innerHTML = '';
+        
+        // 更新分割信息
+        splitMethod.textContent = `自定义分割 (${count}块, ${getLayoutName(layout)})`;
+        splitTotalCount.textContent = count;
+        
+        // 计算分割布局
+        const layoutInfo = calculateCustomLayout(img.width, img.height, count, layout);
+        
+        // 创建临时canvas用于裁剪
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        let processedCount = 0;
+        
+        // 逐个处理每个分块
+        for (let i = 0; i < layoutInfo.pieces.length; i++) {
+            const piece = layoutInfo.pieces[i];
+            
+            try {
+                const result = await createSplitPiece(
+                    img, 
+                    piece.x, piece.y, piece.width, piece.height, 
+                    piece.row, piece.col, layoutInfo.rows, layoutInfo.cols,
+                    quality, format, targetSize
+                );
+                splitResults.push(result);
+                displaySplitResultItem(result, processedCount);
+                processedCount++;
+            } catch (error) {
+                console.error(`处理分块 ${i} 时出错:`, error);
+            }
+        }
+        
+        isProcessingSplit = false;
+        
+        // 显示下载按钮
+        if (splitResults.length > 0) {
+            splitDownloadAllBtn.style.display = 'inline-block';
+        }
+    }
+    
+    // 计算自定义分割布局
+    function calculateCustomLayout(imgWidth, imgHeight, count, layout) {
+        let rows, cols;
+        
+        if (layout === 'horizontal') {
+            rows = 1;
+            cols = count;
+        } else if (layout === 'vertical') {
+            rows = count;
+            cols = 1;
+        } else if (layout === 'square') {
+            // 计算最接近正方形的网格
+            cols = Math.ceil(Math.sqrt(count));
+            rows = Math.ceil(count / cols);
+        } else { // auto
+            // 根据图片比例自动选择布局
+            const aspectRatio = imgWidth / imgHeight;
+            if (aspectRatio > 2) {
+                // 宽图，使用水平布局
+                cols = count;
+                rows = 1;
+            } else if (aspectRatio < 0.5) {
+                // 高图，使用垂直布局
+                cols = 1;
+                rows = count;
+            } else {
+                // 方形或接近方形，使用网格布局
+                cols = Math.ceil(Math.sqrt(count));
+                rows = Math.ceil(count / cols);
+            }
+        }
+        
+        const pieceWidth = imgWidth / cols;
+        const pieceHeight = imgHeight / rows;
+        
+        // 生成分块信息
+        const pieces = [];
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const index = row * cols + col;
+                if (index < count) {
+                    pieces.push({
+                        x: col * pieceWidth,
+                        y: row * pieceHeight,
+                        width: pieceWidth,
+                        height: pieceHeight,
+                        row: row,
+                        col: col
+                    });
+                }
+            }
+        }
+        
+        return { rows, cols, pieces };
+    }
+    
+    // 获取布局名称
+    function getLayoutName(layout) {
+        const names = {
+            'auto': '自动',
+            'horizontal': '水平',
+            'vertical': '垂直',
+            'square': '方形网格'
+        };
+        return names[layout] || layout;
+    }
+    
+    // 生成分割文件名
+    function generateSplitFileName(originalName, row, col, totalRows, totalCols, format) {
+        const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
+        const extension = format === 'png' ? 'png' : 'jpg';
+        const position = `${row + 1}-${col + 1}`;
+        return `${nameWithoutExt}_split_${totalRows}x${totalCols}_${position}.${extension}`;
+    }
+    
+    // 显示分割结果项
+    function displaySplitResultItem(result, index) {
+        const div = document.createElement('div');
+        div.className = 'split-result-item';
+        
+        const imageUrl = URL.createObjectURL(result.blob);
+        
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = `分割块 ${result.position}`;
+        
+        const info = document.createElement('div');
+        info.className = 'item-info';
+        info.innerHTML = `
+            <div class="item-position">位置: ${result.position}</div>
+            <div class="item-size">${Math.round(result.width)} × ${Math.round(result.height)}</div>
+        `;
+        
+        const downloadLink = document.createElement('a');
+        downloadLink.className = 'download-single';
+        downloadLink.href = imageUrl;
+        downloadLink.textContent = '下载';
+        downloadLink.download = result.fileName;
+        
+        div.appendChild(img);
+        div.appendChild(info);
+        div.appendChild(downloadLink);
+        
+        splitImagesGrid.appendChild(div);
+    }
+    
+    // 分割重置按钮事件
+    splitResetBtn.addEventListener('click', () => {
+        resetSplitMode();
+    });
+    
+    // 分割批量下载按钮事件
+    splitDownloadAllBtn.addEventListener('click', async () => {
+        if (splitResults.length === 0) return;
+        
+        // 创建ZIP文件
+        const zip = new JSZip();
+        
+        // 添加所有分割图片到ZIP
+        splitResults.forEach((result, index) => {
+            zip.file(result.fileName, result.blob);
+        });
+        
+        try {
+            // 生成ZIP文件
+            const content = await zip.generateAsync({type: 'blob'});
+            
+            // 下载ZIP文件
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `split_images_${new Date().getTime()}.zip`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片修改工具</title>
+    <title>图片修改工具 - 支持分割、裁剪、批量处理</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,6 +13,7 @@
             <div class="upload-modes">
                 <button class="mode-btn active" data-mode="single">单张处理</button>
                 <button class="mode-btn" data-mode="batch">批量处理</button>
+                <button class="mode-btn" data-mode="split">图片分割</button>
             </div>
             
             <!-- 单张上传 -->
@@ -31,6 +32,15 @@
                     <input type="file" id="batch-image-upload" accept="image/*" multiple>
                 </label>
                 <p class="hint">支持同时选择多张JPG、PNG、GIF图片</p>
+            </div>
+            
+            <!-- 图片分割上传 -->
+            <div class="split-upload hidden" id="split-upload">
+                <label for="split-image-upload" class="upload-label">
+                    <span>选择要分割的图片</span>
+                    <input type="file" id="split-image-upload" accept="image/*">
+                </label>
+                <p class="hint">选择一张大图片，将其分割成多个小图片</p>
             </div>
         </div>
 
@@ -133,9 +143,103 @@
                 <button id="batch-reset-btn" class="btn secondary">重新开始</button>
             </div>
         </div>
+        
+        <!-- 图片分割设置 -->
+        <div class="split-section hidden" id="split-container">
+            <h2>分割设置</h2>
+            <div class="split-options">
+                <div class="split-mode-option">
+                    <label>分割方式：</label>
+                    <div class="split-mode-group">
+                        <label>
+                            <input type="radio" name="split-mode" value="grid" checked>
+                            网格分割
+                        </label>
+                        <label>
+                            <input type="radio" name="split-mode" value="custom">
+                            自定义分割
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="grid-split-options" id="grid-split-options">
+                    <div class="split-rows">
+                        <label for="split-rows">行数：</label>
+                        <input type="number" id="split-rows" min="1" max="10" value="2">
+                    </div>
+                    <div class="split-cols">
+                        <label for="split-cols">列数：</label>
+                        <input type="number" id="split-cols" min="1" max="10" value="2">
+                    </div>
+                </div>
+                
+                <div class="custom-split-options hidden" id="custom-split-options">
+                    <div class="split-count">
+                        <label for="split-count">分割数量：</label>
+                        <input type="number" id="split-count" min="2" max="100" value="4">
+                    </div>
+                    <div class="split-layout">
+                        <label>布局方式：</label>
+                        <select id="split-layout">
+                            <option value="auto">自动排列</option>
+                            <option value="horizontal">水平排列</option>
+                            <option value="vertical">垂直排列</option>
+                            <option value="square">正方形网格</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="split-size-option">
+                    <label for="split-size">每块尺寸：</label>
+                    <select id="split-size">
+                        <option value="original">保持原尺寸</option>
+                        <option value="640">640 x 640</option>
+                        <option value="320">320 x 320</option>
+                        <option value="240">240 x 240</option>
+                        <option value="160">160 x 160</option>
+                    </select>
+                </div>
+                
+                <div class="split-quality-option">
+                    <label for="split-quality">图片质量：</label>
+                    <input type="range" id="split-quality" min="10" max="100" value="90">
+                    <span id="split-quality-value">90%</span>
+                </div>
+                
+                <div class="split-format-option">
+                    <label>输出格式：</label>
+                    <div class="split-format-group">
+                        <label>
+                            <input type="radio" name="split-format" value="jpeg" checked>
+                            JPEG
+                        </label>
+                        <label>
+                            <input type="radio" name="split-format" value="png">
+                            PNG
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <button id="split-btn" class="btn primary">开始分割</button>
+        </div>
+        
+        <!-- 图片分割结果 -->
+        <div class="split-result-section hidden" id="split-result-container">
+            <h2>分割结果</h2>
+            <div class="split-info">
+                <p>原图尺寸: <span id="split-original-size">0 x 0</span></p>
+                <p>分割方式: <span id="split-method">网格分割</span></p>
+                <p>生成图片: <span id="split-total-count">0</span> 张</p>
+            </div>
+            <div class="split-images-grid" id="split-images-grid"></div>
+            <div class="split-actions">
+                <button id="split-download-all-btn" class="btn primary">下载全部 (ZIP)</button>
+                <button id="split-reset-btn" class="btn secondary">重新开始</button>
+            </div>
+        </div>
     </div>
     <footer>
-        <p>© 2023 图片修改工具 - 简单易用的在线图片处理</p>
+        <p>© 2025 图片修改工具 - 简单易用的在线图片处理</p>
     </footer>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="script.js"></script>
