@@ -670,4 +670,51 @@ footer {
         height: 140px;
         object-fit: contain;
     }
-} 
+} /* 上传区域拖拽样式 */
+.upload-drop-zone {
+    border: 2px dashed #dce4ec;
+    border-radius: 8px;
+    padding: 40px 20px;
+    transition: all 0.3s ease;
+    background-color: #f9fbfd;
+    position: relative;
+    cursor: pointer;
+}
+
+.upload-drop-zone:hover {
+    border-color: #3498db;
+    background-color: #ecf0f5;
+}
+
+.upload-drop-zone.drag-active {
+    border-color: #2ecc71;
+    background-color: #e8f8f5;
+    transform: scale(1.02);
+}
+
+.upload-drop-zone .upload-label {
+    pointer-events: none; /* 让点击穿透到父容器，或者父容器点击触发input */
+    margin-bottom: 10px;
+}
+
+/* 修复：因为我们把 label 放在 drop-zone 里，且 drop-zone 也有点击事件（可能），
+   所以要小心处理。现有结构是 label包裹input。
+   最简单的做法：drop-zone 样式化，input click 仍然由 label 触发。
+   为了让整个区域可点击，我们可以用 JS 监听 drop-zone 点击并触发 input click。
+*/
+
+.upload-drop-zone .hint {
+    margin-top: 15px;
+    color: #95a5a6;
+}
+
+.upload-icon {
+    font-size: 48px;
+    color: #bdc3c7;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.upload-drop-zone:hover .upload-icon {
+    color: #3498db;
+}

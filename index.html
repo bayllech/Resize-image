@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>图片修改工具 - 支持分割、裁剪、批量处理</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="container">
         <h1>图片修改工具</h1>
@@ -15,32 +17,56 @@
                 <button class="mode-btn" data-mode="batch">批量处理</button>
                 <button class="mode-btn" data-mode="split">图片分割</button>
             </div>
-            
+
             <!-- 单张上传 -->
-            <div class="single-upload" id="single-upload">
+            <div class="single-upload upload-drop-zone" id="single-upload">
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                </div>
                 <label for="image-upload" class="upload-label">
                     <span>选择图片</span>
                     <input type="file" id="image-upload" accept="image/*">
                 </label>
-                <p class="hint">支持JPG、PNG、GIF等常见图片格式</p>
+                <p class="hint">点击或拖拽图片到此处<br><span style="font-size: 0.85em">支持JPG、PNG、GIF等常见图片格式</span></p>
             </div>
-            
+
             <!-- 批量上传 -->
-            <div class="batch-upload hidden" id="batch-upload">
+            <div class="batch-upload hidden upload-drop-zone" id="batch-upload">
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                </div>
                 <label for="batch-image-upload" class="upload-label">
                     <span>选择多张图片</span>
                     <input type="file" id="batch-image-upload" accept="image/*" multiple>
                 </label>
-                <p class="hint">支持同时选择多张JPG、PNG、GIF图片</p>
+                <p class="hint">点击或拖拽多张图片到此处<br><span style="font-size: 0.85em">支持同时选择多张JPG、PNG、GIF图片</span></p>
             </div>
-            
+
             <!-- 图片分割上传 -->
-            <div class="split-upload hidden" id="split-upload">
+            <div class="split-upload hidden upload-drop-zone" id="split-upload">
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                </div>
                 <label for="split-image-upload" class="upload-label">
                     <span>选择要分割的图片</span>
                     <input type="file" id="split-image-upload" accept="image/*">
                 </label>
-                <p class="hint">选择一张大图片，将其分割成多个小图片</p>
+                <p class="hint">点击或拖拽图片到此处<br><span style="font-size: 0.85em">将大图片分割成多个小图片</span></p>
             </div>
         </div>
 
@@ -79,6 +105,14 @@
                 <div class="size-option">
                     <input type="radio" id="size-750-400" name="size-option" value="750-400">
                     <label for="size-750-400">750 x 400 像素</label>
+                </div>
+                <div class="size-option">
+                    <input type="radio" id="size-750-560" name="size-option" value="750-560">
+                    <label for="size-750-560">750 x 560 像素</label>
+                </div>
+                <div class="size-option">
+                    <input type="radio" id="size-750" name="size-option" value="750">
+                    <label for="size-750">750 x 750 像素</label>
                 </div>
                 <div class="quality-option">
                     <label for="quality-slider">图片质量:</label>
@@ -121,13 +155,13 @@
                     <p>注意: 大尺寸图片(640x640)已使用优化压缩算法处理，以控制文件大小</p>
                 </div>
                 <div class="rectangle-image-info" style="display: none;">
-                    <p>注意: 矩形图片(750x400)将保持宽高比，不会被裁剪为正方形</p>
+                    <p>注意: 矩形图片将保持宽高比，不会被裁剪为正方形</p>
                 </div>
             </div>
             <a id="download-btn" class="btn primary" download="image-resized.jpg">下载图片</a>
             <button id="reset-btn" class="btn secondary">重新开始</button>
         </div>
-        
+
         <!-- 批量处理结果 -->
         <div class="batch-result-section hidden" id="batch-result-container">
             <h2>批量处理结果</h2>
@@ -143,7 +177,7 @@
                 <button id="batch-reset-btn" class="btn secondary">重新开始</button>
             </div>
         </div>
-        
+
         <!-- 图片分割设置 -->
         <div class="split-section hidden" id="split-container">
             <h2>分割设置</h2>
@@ -161,7 +195,7 @@
                         </label>
                     </div>
                 </div>
-                
+
                 <div class="grid-split-options" id="grid-split-options">
                     <div class="split-rows">
                         <label for="split-rows">行数：</label>
@@ -172,7 +206,7 @@
                         <input type="number" id="split-cols" min="1" max="10" value="2">
                     </div>
                 </div>
-                
+
                 <div class="custom-split-options hidden" id="custom-split-options">
                     <div class="split-count">
                         <label for="split-count">分割数量：</label>
@@ -188,7 +222,7 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="split-size-option">
                     <label for="split-size">每块尺寸：</label>
                     <select id="split-size">
@@ -199,13 +233,13 @@
                         <option value="160">160 x 160</option>
                     </select>
                 </div>
-                
+
                 <div class="split-quality-option">
                     <label for="split-quality">图片质量：</label>
                     <input type="range" id="split-quality" min="10" max="100" value="90">
                     <span id="split-quality-value">90%</span>
                 </div>
-                
+
                 <div class="split-format-option">
                     <label>输出格式：</label>
                     <div class="split-format-group">
@@ -222,7 +256,7 @@
             </div>
             <button id="split-btn" class="btn primary">开始分割</button>
         </div>
-        
+
         <!-- 图片分割结果 -->
         <div class="split-result-section hidden" id="split-result-container">
             <h2>分割结果</h2>
@@ -244,4 +278,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="script.js"></script>
 </body>
-</html> 
+
+</html>
